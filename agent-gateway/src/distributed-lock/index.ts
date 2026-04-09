@@ -106,7 +106,11 @@ export class DistributedLockManager {
         if (this.config.renewalIntervalMs > 0) {
           const timer = setInterval(() => {
             if (!lock.isExpired()) {
-              this.renewLock(lock, lockTtl).catch(() => {});
+              this.renewLock(lock, lockTtl).catch((err) => {
+                logger.error({ resource, lockId: lock.lockId, err }, 'Lock renewal failed — lock may expire');
+                // Release the lock from our active set since renewal failed
+                this.activeLocks.delete(resource);
+              });
             }
           }, this.config.renewalIntervalMs);
           this.renewTimers.set(lockId, timer);

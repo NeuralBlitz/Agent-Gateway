@@ -65,14 +65,14 @@ export class ResourceLocker extends EventEmitter {
       });
       this.waitQueue.set(resource, queue);
 
-      // Timeout after 30s
+      // Timeout after ttl or default 30s
       setTimeout(() => {
         const idx = queue.findIndex((w) => w.ownerId === ownerId && w.mode === mode);
         if (idx >= 0) {
           queue.splice(idx, 1);
           reject(new Error(`Lock acquisition timeout for resource: ${resource}`));
         }
-      }, 30000);
+      }, lockTtl);
     });
   }
 

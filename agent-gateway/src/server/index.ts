@@ -53,66 +53,13 @@ import { createSessionManager as createEnterpriseSessionManager, MemorySessionSt
 import { createContentModerator } from '../content-moderator/index.js';
 import { createRealTimeDashboard } from '../dashboard/index.js';
 import { createApiVersionManager } from '../api-version-manager/index.js';
-import { createApiVersionManager as createApiVersionManager2 } from '../api-version-manager/index.js';
 import { createCacheManager } from '../cache-manager/index.js';
 import { createConnectionManager } from '../connection-manager/index.js';
 import { createCronScheduler } from '../cron/index.js';
 import { createHealthChecker } from '../health-checker/index.js';
 import { createShutdownManager } from '../graceful-shutdown/index.js';
 import { createMiddlewarePipeline, Middleware } from '../middleware-pipeline/index.js';
-import { createResponseTransformer } from '../response-transformer/index.js';
-import { createGraphQLGateway } from '../graphql/index.js';
-import { createOpenApiGenerator } from '../openapi/index.js';
-import { createEmbeddingStore } from '../embedding-store/index.js';
-import { createDistributedLockManager } from '../distributed-lock/index.js';
-import { createErrorHandler } from '../error-handler/index.js';
-import { createRequestLogger } from '../request-logger/index.js';
-import { createConfigManager } from '../config-manager/index.js';
-import { createWebhookManager } from '../webhook-manager/index.js';
 import { createAdvancedRateLimiter } from '../advanced-rate-limiter/index.js';
-import { createApiGateway } from '../api-gateway/index.js';
-import { createApiKeyManager } from '../api-key-manager/index.js';
-import { createSessionManager as createEnterpriseSessionManager, MemorySessionStore } from '../session-manager/index.js';
-import { createContentModerator } from '../content-moderator/index.js';
-import { createRealTimeDashboard } from '../dashboard/index.js';
-import { createCacheManager } from '../cache-manager/index.js';
-import { createConnectionManager } from '../connection-manager/index.js';
-import { createDataTransformer } from '../data-transformer/index.js';
-import { createEventStore } from '../event-store/index.js';
-import { InputSanitizer } from '../input-sanitizer/index.js';
-import { Paginator } from '../pagination/index.js';
-import { createSchemaRegistry } from '../schema-registry/index.js';
-import { createMessageBus } from '../message-bus/index.js';
-import { createObservabilityEngine } from '../observability-engine/index.js';
-import { createRateLimitEngine } from '../rate-limit-engine/index.js';
-import { createRequestDeduplicator } from '../request-deduplicator/index.js';
-import { createRequestTracker } from '../request-tracker/index.js';
-import { createResourceLocker } from '../resource-locker/index.js';
-import { withRetry, withTimeout, createBulkhead } from '../retry-handler/index.js';
-import { createSearchEngine } from '../search-engine/index.js';
-import { createSecurityScanner } from '../security-scanner/index.js';
-import { createTaskScheduler } from '../task-scheduler/index.js';
-import { createFeatureFlagManager as createFeatureToggleManager } from '../feature-flags/index.js';
-import { register } from 'prom-client';
-import { createSkillsEngine } from '../skills-engine/index.js';
-import { createDataTransformer } from '../data-transformer/index.js';
-import { createEventStore } from '../event-store/index.js';
-import { InputSanitizer } from '../input-sanitizer/index.js';
-import { Paginator } from '../pagination/index.js';
-import { createSchemaRegistry } from '../schema-registry/index.js';
-import { createMessageBus } from '../message-bus/index.js';
-import { createObservabilityEngine } from '../observability-engine/index.js';
-import { createRateLimitEngine } from '../rate-limit-engine/index.js';
-import { createRequestDeduplicator } from '../request-deduplicator/index.js';
-import { createRequestTracker } from '../request-tracker/index.js';
-import { createResourceLocker } from '../resource-locker/index.js';
-import { withRetry, withTimeout, createBulkhead } from '../retry-handler/index.js';
-import { createSearchEngine } from '../search-engine/index.js';
-import { createSecurityScanner } from '../security-scanner/index.js';
-import { createTaskScheduler } from '../task-scheduler/index.js';
-import { createFeatureFlagManager as createFeatureToggleManager } from '../feature-flags/index.js';
-import { register } from 'prom-client';
-import { createSkillsEngine } from '../skills-engine/index.js';
 import type { Channel } from '../channels/index.js';
 import type { Provider } from '../providers/index.js';
 import type { GatewayConfig } from '../config/index.js';
@@ -198,10 +145,14 @@ export interface ServerOptions {
   secretManager2?: ReturnType<typeof createSecretManager>;
   /** Optional tenant manager (alt) */
   tenantManager2?: ReturnType<typeof createTenantManager>;
+  /** Optional health checker */
+  healthChecker?: ReturnType<typeof createHealthChecker>;
+  /** Optional health checker (alt) */
+  healthChecker2?: ReturnType<typeof createHealthChecker>;
   /** Optional real-time dashboard */
   dashboard?: ReturnType<typeof createRealTimeDashboard>;
   /** Optional API version manager (alt) */
-  apiVersionManager2?: ReturnType<typeof createApiVersionManager2>;
+  apiVersionManager2?: ReturnType<typeof createApiVersionManager>;
   /** Optional cache manager */
   cacheManager?: ReturnType<typeof createCacheManager>;
   /** Optional connection manager */

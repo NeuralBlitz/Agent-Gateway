@@ -36,21 +36,27 @@ export interface NotificationConfig {
   quietHours?: { start: number; end: number }; // e.g., { start: 22, end: 7 }
   /** Deduplication window (ms) — don't send duplicate notifications */
   dedupWindowMs?: number;
+  /** Max notifications to keep in memory */
+  maxNotifications?: number;
 }
 
 export class NotificationSystem extends EventEmitter {
   private config: Required<NotificationConfig>;
   private notifications: Notification[] = [];
   private recentHashes: Map<string, number> = new Map();
+  private maxNotifications: number;
 
   constructor(config: NotificationConfig = {}) {
     super();
+    const maxNotifications = config.maxNotifications || 10000;
     this.config = {
       defaultRecipients: config.defaultRecipients || [],
       rateLimitPerMinute: config.rateLimitPerMinute || 60,
       quietHours: config.quietHours || { start: 0, end: 0 },
       dedupWindowMs: config.dedupWindowMs || 5 * 60 * 1000,
+      maxNotifications,
     };
+    this.maxNotifications = maxNotifications;
   }
 
   /** Send a notification */
@@ -93,6 +99,9 @@ export class NotificationSystem extends EventEmitter {
     }
 
     this.notifications.push(notification);
+    if (this.notifications.length > this.maxNotifications) {
+      this.notifications.shift();
+    }
     this.recentHashes.set(hash, Date.now());
 
     this.emit('notification:sent', notification);

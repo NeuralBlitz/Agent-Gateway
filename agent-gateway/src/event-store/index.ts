@@ -50,6 +50,8 @@ export class EventStore extends EventEmitter {
       snapshotInterval: config.snapshotInterval || 100,
       maxEventsPerAggregate: config.maxEventsPerAggregate || 10000,
     };
+    // Prevent MaxListenersExceededWarning with high subscriber counts
+    this.setMaxListeners(100);
   }
 
   /** Append an event */
@@ -76,7 +78,12 @@ export class EventStore extends EventEmitter {
       await this.createSnapshot(event.aggregateId, event.aggregateType);
     }
 
-    this.emit('event:appended', fullEvent);
+    // Emit events (with error protection)
+    try {
+      this.emit('event:appended', fullEvent);
+    } catch (err: any) {
+      logger.error({ event: fullEvent.type, err }, 'Event store append listener failed');
+    }
     return fullEvent;
   }
 
@@ -95,7 +102,7 @@ export class EventStore extends EventEmitter {
 
     if (filter?.type) events = events.filter((e) => e.type === filter.type);
     if (filter?.aggregateType) events = events.filter((e) => e.aggregateType === filter.aggregateType);
-    if (filter?.after) events = events.filter((e) => e.timestamp >= filter.after!);
+    if (filter?.after) events = events.filter((e) => e.timestamp > filter.after!);
 
     return events;
   }
@@ -119,7 +126,11 @@ export class EventStore extends EventEmitter {
     };
 
     this.snapshots.set(aggregateId, snapshot);
-    this.emit('snapshot:created', snapshot);
+    try {
+      this.emit('snapshot:created', snapshot);
+    } catch (err: any) {
+      logger.error({ err }, 'Event store snapshot listener failed');
+    }
     return snapshot;
   }
 

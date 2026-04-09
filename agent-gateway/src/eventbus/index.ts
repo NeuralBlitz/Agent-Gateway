@@ -71,6 +71,8 @@ export class EventBus extends EventEmitter {
     super();
     this.maxHistory = options.maxHistory || 10000;
     this.maxDeadLetters = options.maxDeadLetters || 1000;
+    // Prevent MaxListenersExceededWarning with high subscriber counts
+    this.setMaxListeners(100);
   }
 
   /** Publish an event */
@@ -86,14 +88,21 @@ export class EventBus extends EventEmitter {
       this.eventHistory.shift();
     }
 
-    // Emit synchronously for low-latency handlers
-    this.emit(fullEvent.type, fullEvent);
-    this.emit('*', fullEvent); // Wildcard listener
+    // Emit synchronously for low-latency handlers (with error protection)
+    try {
+      this.emit(fullEvent.type, fullEvent);
+      this.emit('*', fullEvent); // Wildcard listener
+    } catch (err: any) {
+      logger.error({ event: fullEvent.type, err }, 'Event emitter handler failed');
+    }
 
     // Queue for async processing
     this.processingQueue.push(fullEvent);
-    this.processQueue().catch((err) => {
-      logger.error({ err }, 'Event processing failed');
+    // Use setImmediate to ensure atomic isProcessing check
+    setImmediate(() => {
+      this.processQueue().catch((err) => {
+        logger.error({ err }, 'Event processing failed');
+      });
     });
   }
 
@@ -160,23 +169,24 @@ export class EventBus extends EventEmitter {
     while (this.processingQueue.length > 0) {
       const event = this.processingQueue.shift()!;
 
-      try {
-        // Get handlers for this event type sorted by priority
-        const handlers = Array.from(this.subscriptions.values())
-          .filter((s) => s.event === event.type)
-          .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      // Get handlers for this event type sorted by priority
+      const handlers = Array.from(this.subscriptions.values())
+        .filter((s) => s.event === event.type)
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
-        for (const sub of handlers) {
+      for (const sub of handlers) {
+        try {
           await sub.handler(event);
           if (sub.once) {
             this.unsubscribe(sub.id);
           }
-        }
-      } catch (err: any) {
-        logger.error({ event: event.type, err }, 'Event handler failed, moving to dead letters');
-        this.deadLetters.push(event);
-        if (this.deadLetters.length > this.maxDeadLetters) {
-          this.deadLetters.shift();
+        } catch (err: any) {
+          logger.error({ event: event.type, handler: sub.id, err }, 'Event handler failed');
+          // Dead-letter the event and continue with remaining handlers
+          this.deadLetters.push({ ...event, data: { ...event.data, error: err.message } });
+          if (this.deadLetters.length > this.maxDeadLetters) {
+            this.deadLetters.shift();
+          }
         }
       }
     }

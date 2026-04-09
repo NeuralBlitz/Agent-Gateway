@@ -11,6 +11,7 @@ import { logger } from '../infra/index.js';
 export interface AdminDeps {
   gateway: any;
   sessionManager: any;
+  analytics?: any;
   toolRegistry?: any;
   tenantManager?: any;
   secretManager?: any;

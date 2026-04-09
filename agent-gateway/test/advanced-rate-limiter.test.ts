@@ -191,8 +191,12 @@ describe('AdvancedRateLimiter', () => {
       const result = await limiter.check('count:1', { max: 100, window: 60 }, 50);
       expect(result.allowed).toBe(true);
 
-      const blocked = await limiter.check('count:1', { max: 100, window: 60 }, 50);
-      expect(blocked.allowed).toBe(false);
+      const second = await limiter.check('count:1', { max: 100, window: 60 }, 50);
+      expect(second.allowed).toBe(true); // 50 + 50 = 100, exactly at limit
+      expect(second.remaining).toBe(0);
+
+      const blocked = await limiter.check('count:1', { max: 100, window: 60 }, 1);
+      expect(blocked.allowed).toBe(false); // 101 would exceed
     });
 
     it('handles very small windows', async () => {

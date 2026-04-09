@@ -109,7 +109,7 @@ export class MessageBus extends EventEmitter {
 
   /** Replay messages from history */
   async replay(topic: string, handler: MessageHandler, since?: number): Promise<number> {
-    const messages = this.history.filter((m) => m.topic === topic && (!since || m.timestamp > since));
+    const messages = this.history.filter((m) => m.topic === topic && (!since || m.timestamp >= since));
     let count = 0;
 
     for (const message of messages) {

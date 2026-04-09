@@ -196,6 +196,7 @@ describe('MessageBus', () => {
 
     it('should replay with since filter', async () => {
       await bus.publish('replay-since', 'old');
+      await new Promise((r) => setTimeout(r, 5)); // Ensure different timestamp
       const sinceTime = Date.now();
       await bus.publish('replay-since', 'new');
 

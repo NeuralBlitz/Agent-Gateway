@@ -132,7 +132,7 @@ export class AdvancedRateLimiter {
     const redis = await this.getRedis();
 
     if (redis) {
-      return this.checkRedis(fullKey, opts);
+      return this.checkRedis(fullKey, opts, count);
     }
 
     return this.checkLocal(key, opts, count);
@@ -174,9 +174,9 @@ export class AdvancedRateLimiter {
     }
   }
 
-  private async checkRedis(key: string, opts: RateLimitOptions): Promise<RateLimitResult> {
+  private async checkRedis(key: string, opts: RateLimitOptions, count: number = 1): Promise<RateLimitResult> {
     const redis = await this.getRedis();
-    if (!redis) return this.checkLocal(key, opts);
+    if (!redis) return this.checkLocal(key, opts, count);
 
     const now = Date.now();
     const windowStart = now - opts.window * 1000;
@@ -184,14 +184,17 @@ export class AdvancedRateLimiter {
     const pipeline = redis.pipeline();
     pipeline.zremrangebyscore(key, 0, windowStart);
     pipeline.zcard(key);
-    pipeline.zadd(key, now, `${now}-${Math.random()}`);
+    // Add `count` entries for distributed tracking
+    for (let i = 0; i < count; i++) {
+      pipeline.zadd(key, now, `${now}-${i}-${Math.random()}`);
+    }
     pipeline.expire(key, opts.window + 1);
 
     const results = await pipeline.exec();
     const requestCount = (results?.[1]?.[1] as number) || 0;
 
-    if (requestCount < opts.max) {
-      return { allowed: true, limit: opts.max, remaining: opts.max - requestCount - 1, resetAt: now + opts.window * 1000 };
+    if (requestCount + count <= opts.max) {
+      return { allowed: true, limit: opts.max, remaining: opts.max - requestCount - count, resetAt: now + opts.window * 1000 };
     }
 
     return { allowed: false, limit: opts.max, remaining: 0, resetAt: now + opts.window * 1000, retryAfter: opts.window };
@@ -204,6 +207,21 @@ export class AdvancedRateLimiter {
 
     const redis = await this.getRedis();
     if (redis) await redis.del(`agw:rl:${key}`);
+  }
+
+  /** Get stats about all local rate limiters */
+  getStats(): {
+    tokenBuckets: number;
+    slidingWindows: number;
+    leakyBuckets: number;
+    redisUrl?: string;
+  } {
+    return {
+      tokenBuckets: this.buckets.size,
+      slidingWindows: this.windows.size,
+      leakyBuckets: this.leakyBuckets.size,
+      redisUrl: this.redisUrl,
+    };
   }
 }
 

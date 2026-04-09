@@ -190,6 +190,7 @@ describe('EventStore', () => {
     it('should filter by timestamp', async () => {
       await store.append({ aggregateId: 'a1', aggregateType: 'T', type: 'E1', data: {}, metadata: {} });
       const afterTime = Date.now();
+      await new Promise((r) => setTimeout(r, 2)); // Ensure different timestamp
       await store.append({ aggregateId: 'a2', aggregateType: 'T', type: 'E2', data: {}, metadata: {} });
 
       const events = store.getAllEvents({ after: afterTime });
@@ -340,6 +341,7 @@ describe('EventStore', () => {
     it('should return events in a time range', async () => {
       const t1 = Date.now();
       await store.append({ aggregateId: 'time-1', aggregateType: 'T', type: 'E1', data: {}, metadata: {} });
+      await new Promise((r) => setTimeout(r, 2)); // Ensure different timestamp
       const t2 = Date.now();
       await store.append({ aggregateId: 'time-2', aggregateType: 'T', type: 'E2', data: {}, metadata: {} });
       const t3 = Date.now();
@@ -353,6 +355,7 @@ describe('EventStore', () => {
       for (let i = 0; i < 10; i++) {
         await store.append({ aggregateId: `ql-${i}`, aggregateType: 'T', type: `E${i}`, data: {}, metadata: {} });
       }
+      await new Promise((r) => setTimeout(r, 2)); // Ensure query end time is after all events
       const events = store.queryByTime(0, Date.now(), 3);
       expect(events.length).toBe(3);
     });

@@ -255,7 +255,12 @@ export class CronScheduler extends EventEmitter {
           `Cron job failed, retrying: ${job.name}`,
         );
 
-        setTimeout(() => this.executeJob(job), retryDelay);
+        setTimeout(() => {
+          this.executeJob(job).catch((err) => {
+            logger.error({ jobId: job.id, name: job.name, err }, 'Cron job retry also failed');
+            this.emit('job:failed', { job, execution, error: err });
+          });
+        }, retryDelay);
       } else {
         this.emit('job:failed', { job, execution, error: err });
         logger.error({ jobId: job.id, name: job.name, err }, `Cron job failed: ${job.name}`);

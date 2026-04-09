@@ -106,7 +106,7 @@ export class SearchEngine extends EventEmitter {
         if (!index.invertedIndex.has(term)) {
           index.invertedIndex.set(term, new Set());
         }
-        index.invertIndex.get(term)?.add(document.id);
+        index.invertedIndex.get(term)?.add(document.id);
       }
     }
 

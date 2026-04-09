@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Gateway</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f0f0f; --surface: #1a1a1a; --border: #2a2a2a;
+      --text: #e0e0e0; --text-dim: #888; --accent: #6c63ff;
+      --user-bg: #2a2a4a; --bot-bg: #1a1a2a; --error: #ff4444;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .header h1 { font-size: 16px; font-weight: 600; }
+    .status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
+    .status-dot.connected { background: #4caf50; }
+
+    /* Chat */
+    .chat { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .message { max-width: 80%; padding: 10px 14px; border-radius: 12px; line-height: 1.5; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+    .message.user { align-self: flex-end; background: var(--user-bg); border-bottom-right-radius: 4px; }
+    .message.assistant { align-self: flex-start; background: var(--bot-bg); border-bottom-left-radius: 4px; }
+    .message.system { align-self: center; background: transparent; color: var(--text-dim); font-size: 12px; padding: 4px 12px; }
+    .message.error { background: rgba(255, 68, 68, 0.1); border: 1px solid var(--error); color: var(--error); }
+
+    /* Input */
+    .input-bar { display: flex; gap: 8px; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); }
+    .input-bar input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
+    .input-bar input:focus { border-color: var(--accent); }
+    .input-bar button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; cursor: pointer; font-weight: 500; }
+    .input-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .input-bar button:hover:not(:disabled) { filter: brightness(1.1); }
+
+    /* Settings panel */
+    .settings { display: none; position: fixed; top: 0; right: 0; width: 320px; height: 100%; background: var(--surface); border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; z-index: 100; }
+    .settings.open { display: block; }
+    .settings h2 { font-size: 16px; margin-bottom: 16px; }
+    .settings label { display: block; margin-bottom: 12px; }
+    .settings label span { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+    .settings input, .settings select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text); font-size: 13px; }
+    .settings button { margin-top: 12px; width: 100%; }
+    .settings-toggle { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 18px; }
+
+    /* Typing indicator */
+    .typing { display: none; align-self: flex-start; padding: 8px 14px; font-size: 12px; color: var(--text-dim); }
+    .typing.visible { display: block; }
+    .typing::after { content: ''; animation: dots 1.5s infinite; }
+    @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚡ Agent Gateway</h1>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="status"><div class="status-dot" id="statusDot"></div><span id="statusText">Disconnected</span></div>
+      <button class="settings-toggle" onclick="toggleSettings()">⚙</button>
+    </div>
+  </div>
+
+  <div class="chat" id="chat"></div>
+  <div class="typing" id="typing">Thinking</div>
+
+  <div class="input-bar">
+    <input type="text" id="input" placeholder="Type a message..." autocomplete="off" />
+    <button id="sendBtn" disabled>Send</button>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings" id="settings">
+    <h2>⚙ Settings</h2>
+    <label><span>Channel (session key)</span><input id="channelInput" placeholder="telegram, discord, etc." value="webchat" /></label>
+    <label><span>User ID</span><input id="userIdInput" placeholder="your-user-id" /></label>
+    <label><span>System Prompt</span><input id="systemPromptInput" placeholder="You are a helpful AI assistant." /></label>
+    <button id="saveSettings" onclick="saveSettings()">Save &amp; Apply</button>
+    <hr style="border-color:var(--border);margin:16px 0;" />
+    <div id="apiStatus" style="font-size:12px;color:var(--text-dim);"></div>
+    <button onclick="clearChat()" style="background:var(--error);margin-top:8px;">Clear Chat</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const typing = document.getElementById('typing');
+
+    let ws = null;
+    let pendingId = null;
+
+    // Generate a random user ID if not set
+    const defaultUserId = 'user_' + Math.random().toString(36).slice(2, 10);
+    document.getElementById('userIdInput').value = localStorage.getItem('ag_user_id') || defaultUserId;
+
+    function addMessage(role, content) {
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+      div.textContent = content;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = `${proto}//${location.host}/ws`;
+
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        statusDot.classList.add('connected');
+        statusText.textContent = 'Connected';
+        sendBtn.disabled = false;
+        input.focus();
+      };
+
+      ws.onclose = () => {
+        statusDot.classList.remove('connected');
+        statusText.textContent = 'Disconnected — reconnecting...';
+        sendBtn.disabled = true;
+        setTimeout(connect, 3000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'pong') return;
+          if (msg.type === 'error') {
+            addMessage('error', msg.message || 'Unknown error');
+          }
+          if (msg.type === 'message:ok') {
+            pendingId = null;
+          }
+        } catch {}
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    async function send() {
+      const text = input.value.trim();
+      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+      const channel = document.getElementById('channelInput').value || 'webchat';
+      const userId = document.getElementById('userIdInput').value || defaultUserId;
+
+      input.value = '';
+      addMessage('user', text);
+
+      const id = 'msg_' + Date.now();
+      pendingId = id;
+      sendBtn.disabled = true;
+      typing.classList.add('visible');
+
+      ws.send(JSON.stringify({ type: 'message', id, channel, userId, content: text }));
+
+      // Show typing for up to 60s
+      const typingTimeout = setTimeout(() => {
+        typing.classList.remove('visible');
+        if (pendingId) sendBtn.disabled = false;
+      }, 60000);
+
+      // Poll /api/status for completion (fallback)
+      const pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch('/api/status');
+          const data = await res.json();
+          // Simple heuristic: if we got a response, the server is alive
+          if (pendingId && data.running) {
+            // Check sessions for new assistant message
+            const sess = await fetch('/api/sessions').then(r => r.json());
+            const lastSession = sess.sessions[sess.sessions.length - 1];
+            if (lastSession && lastSession.messageCount > 0) {
+              // Check if last message was assistant (we can't easily know, so we wait for WS response)
+            }
+          }
+        } catch {}
+      }, 2000);
+
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        typing.classList.remove('visible');
+        sendBtn.disabled = false;
+      }, 60000);
+    }
+
+    sendBtn.addEventListener('click', send);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+
+    function toggleSettings() {
+      document.getElementById('settings').classList.toggle('open');
+    }
+
+    function saveSettings() {
+      localStorage.setItem('ag_user_id', document.getElementById('userIdInput').value);
+      addMessage('system', 'Settings saved');
+    }
+
+    function clearChat() {
+      chat.innerHTML = '';
+      addMessage('system', 'Chat cleared');
+    }
+
+    // Load API status
+    async function loadStatus() {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        document.getElementById('apiStatus').textContent = `Server: ${data.ok ? 'OK' : 'Error'} | Uptime: ${Math.round(data.uptime)}s`;
+      } catch {
+        document.getElementById('apiStatus').textContent = 'Server: unreachable';
+      }
+    }
+    setInterval(loadStatus, 10000);
+    loadStatus();
+
+    // Initial connect
+    connect();
+    addMessage('system', 'Agent Gateway connected. Type a message to start.');
+  </script>
+</body>
+</html>

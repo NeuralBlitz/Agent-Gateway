@@ -1,0 +1,134 @@
+# Cross-Skill Mapping Protocol v1.0
+# Defines interfaces and standards for multi-domain skill linking
+
+description: |
+  This protocol enables standardized skill mapping across domains,
+  defining how skills can be linked, synthesized, and transformed
+  when crossing domain boundaries.
+
+interfaces:
+  -
+    name: ISkillMapper
+    description: Maps skills between domains
+    methods:
+      - name: map_to_domain
+        params: [skill_name, target_domain]
+        returns: MappedSkill
+
+      - name: find_equivalents
+        params: [skill_name, source_domain]
+        returns: List[SkillEquivalent]
+
+      - name: get_mapping_path
+        params: [source_domain, target_domain]
+        returns: List[Domain]
+
+  -
+    name: ISkillSynthesizer
+    description: Synthesizes new skills from domain combinations
+    methods:
+      - name: synthesize
+        params: [domains, requirements, mode]
+        returns: SynthesizedSkill
+
+      - name: validate_synthesis
+        params: [domains, proposed_skill]
+        returns: ValidationResult
+
+      - name: decompose_skill
+        params: [skill_name]
+        returns: List[DomainComponent]
+
+  -
+    name: ISkillBridge
+    description: Creates bridges between incompatible domains
+    methods:
+      - name: create_bridge
+        params: [source_domain, target_domain, capability_mapping]
+        returns: SkillBridge
+
+      - name: validate_bridge
+        params: [bridge]
+        returns: BridgeValidation
+
+      - name: get_bridge_pattern
+        params: [domain_pair]
+        returns: BridgePattern
+
+mappings:
+  # Capability mappings between domains
+  programming->architecture:
+    code->design: direct
+    algorithm->pattern: transform
+    debugging->review: parallel
+
+  infrastructure->cloud:
+    deployment->provisioning: direct
+    scaling->auto_scaling: enhance
+    monitoring->observability: extend
+
+  data->architecture:
+    storage->persistence: direct
+    pipeline->flow: transform
+    analytics->insight: enhance
+
+  security->devops:
+    auth->ci_cd: embed
+    compliance->testing: integrate
+    encryption->automation: wrap
+
+  cloud->devops:
+    serverless->functions: direct
+    containers->orchestration: integrate
+    networking->delivery: extend
+
+synthesis_patterns:
+  -
+    name: vertical_stack
+    description: Stack domains from infrastructure to cloud
+    domains: [infrastructure, devops, cloud]
+    pattern: sequential
+
+  -
+    name: horizontal_bridge
+    description: Bridge parallel domains
+    domains: [programming, data, architecture]
+    pattern: hierarchical
+
+  -
+    name: security_matrix
+    description: Security overlay across all domains
+    domains: [programming, infrastructure, data, cloud, devops]
+    pattern: crosscutting
+
+  -
+    name: full_stack_synthesis
+    description: Maximum 7-domain synthesis
+    domains: [programming, infrastructure, data, architecture, security, devops, cloud]
+    pattern: emergent
+
+transformation_rules:
+  -
+    from: [programming, security]
+    to: secure_coding
+    rules:
+      - input: vulnerability
+        output: mitigation_strategy
+        transform: threat_modeling
+      - input: code_review
+        output: security_checklist
+        transform: embed_security
+
+  -
+    from: [cloud, architecture]
+    to: system_design
+    rules:
+      - input: requirements
+        output: scalable_architecture
+        transform: cloud_native_design
+      - input: constraints
+        output: tradeoffs
+        transform: multi_criteria_analysis
+
+version: 1.0.0
+updated: 2024-01-15

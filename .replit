@@ -1,0 +1,64 @@
+run = "bash start-openclaw.sh"
+entrypoint = "start-openclaw.sh"
+hidden = [".config", "package-lock.json", "tsconfig.json"]
+modules = ["nodejs-22", "python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["bottom", "fish", "htop-vim", "tree", "zsh"]
+
+[gitHubImport]
+requiredFiles = [".replit", "replit.nix", ".config"]
+
+[deployment]
+run = ["bash", "start-openclaw.sh"]
+deploymentTarget = "cloudrun"
+ignorePorts = false
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[[ports]]
+localPort = 3002
+externalPort = 3000
+exposeLocalhost = true
+
+[[ports]]
+localPort = 4000
+externalPort = 3003
+
+[[ports]]
+localPort = 4100
+externalPort = 3002
+
+[[ports]]
+localPort = 4300
+externalPort = 4200
+
+[[ports]]
+localPort = 4400
+externalPort = 5000
+
+[[ports]]
+localPort = 4500
+externalPort = 5173
+
+[[ports]]
+localPort = 4600
+externalPort = 6000
+
+[[ports]]
+localPort = 4700
+externalPort = 6800
+
+[[ports]]
+localPort = 4800
+externalPort = 8000
+
+[[ports]]
+localPort = 24678
+externalPort = 3001
+
+[agent]
+expertMode = true

@@ -1,0 +1,43 @@
+services:
+  agent-gateway:
+    build: .
+    container_name: agent-gateway
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
+      - AGENT_SESSIONS_DIR=/app/.agent-sessions
+      # AI Provider API Keys (uncomment and set)
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
+      # - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      # - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # Messaging Channel Tokens (uncomment and set)
+      # - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      # - DISCORD_TOKEN=${DISCORD_TOKEN}
+      # - SLACK_TOKEN=${SLACK_TOKEN}
+      # Optional
+      # - SYSTEM_PROMPT=${SYSTEM_PROMPT}
+      # - LOG_LEVEL=${LOG_LEVEL:-info}
+      # - DISABLE_BASH_TOOL=${DISABLE_BASH_TOOL:-0}
+      # - DISABLE_FS_TOOL=${DISABLE_FS_TOOL:-0}
+      # - DISABLE_WEB_SEARCH=${DISABLE_WEB_SEARCH:-0}
+    volumes:
+      - agent-sessions:/app/.agent-sessions
+      # Mount config file if you have one
+      # - ./agent-gateway.config.json:/app/agent-gateway.config.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  agent-sessions:
+    driver: local

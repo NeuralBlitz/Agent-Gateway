@@ -156,7 +156,7 @@
     "pino-pretty": "^11.0.0",
     "prom-client": "^15.1.3",
     "rate-limiter-flexible": "^5.0.0",
-    "rolldown": "^1.0.0-beta.7",
+    "rolldown": "^1.0.0-rc.15",
     "stacktracey": "^2.1.8",
     "tar": "^7.5.13",
     "terminal-columns": "^2.0.0",

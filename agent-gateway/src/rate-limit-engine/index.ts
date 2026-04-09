@@ -193,7 +193,9 @@ export class RateLimitEngine extends EventEmitter {
   constructor(redisUrl?: string) {
     super();
     if (redisUrl) {
-      this.initializeRedis(redisUrl).catch(() => {});
+      this.initializeRedis(redisUrl).catch((err) => {
+        logger.warn({ err }, 'Redis initialization failed — falling back to in-memory rate limiting');
+      });
     }
   }
 

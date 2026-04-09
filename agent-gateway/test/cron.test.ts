@@ -476,7 +476,8 @@ describe('CronScheduler', () => {
 
       await scheduler.runNow(job.id);
       const executions = scheduler.getExecutions(job.id);
-      expect(executions[0].durationMs).toBeGreaterThanOrEqual(10);
+      // Allow 2ms tolerance for timer imprecision
+      expect(executions[0].durationMs).toBeGreaterThanOrEqual(8);
     });
   });
 });

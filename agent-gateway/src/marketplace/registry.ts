@@ -149,6 +149,7 @@ export class PluginRegistry extends EventEmitter {
   private installCounts: Map<string, number> = new Map();
   private featuredPlugins: Set<string> = new Set();
   private config: Required<MarketplaceConfig>;
+  private maxRatings = 50000;
 
   constructor(config: MarketplaceConfig = {}) {
     super();
@@ -317,6 +318,9 @@ export class PluginRegistry extends EventEmitter {
     };
 
     this.ratings.push(rating);
+    if (this.ratings.length > this.maxRatings) {
+      this.ratings.shift();
+    }
     this.emit('rating:added', rating);
     return rating;
   }

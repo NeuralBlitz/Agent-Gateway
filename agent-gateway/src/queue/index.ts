@@ -30,6 +30,8 @@ export interface QueueConfig {
   visibilityTimeoutMs?: number;
   /** Polling interval in ms (default: 100) */
   pollIntervalMs?: number;
+  /** Max dead letters per topic (default: 10000) */
+  maxDeadLettersPerTopic?: number;
 }
 
 interface TopicQueue {
@@ -52,6 +54,7 @@ export class MessageQueue extends EventEmitter {
       maxAttempts: config.maxAttempts || 3,
       visibilityTimeoutMs: config.visibilityTimeoutMs || 30000,
       pollIntervalMs: config.pollIntervalMs || 100,
+      maxDeadLettersPerTopic: config.maxDeadLettersPerTopic || 10000,
     };
   }
 
@@ -183,6 +186,9 @@ export class MessageQueue extends EventEmitter {
 
           if (message.attempts >= message.maxAttempts) {
             queue.deadLetters.push(message);
+            if (queue.deadLetters.length > this.config.maxDeadLettersPerTopic) {
+              queue.deadLetters.shift();
+            }
             this.emit('message:dead', message);
             logger.error({ messageId: message.id, topic, attempts: message.attempts }, 'Message moved to dead letters');
           } else {

@@ -266,7 +266,12 @@ export class CronScheduler extends EventEmitter {
         logger.error({ jobId: job.id, name: job.name, err }, `Cron job failed: ${job.name}`);
       }
     } finally {
-      this.running.set(job.id, Math.max(0, (this.running.get(job.id) || 0) - 1));
+      const currentCount = (this.running.get(job.id) || 0) - 1;
+      if (currentCount <= 0) {
+        this.running.delete(job.id);
+      } else {
+        this.running.set(job.id, currentCount);
+      }
 
       // Store execution history
       job.executions.push(execution);

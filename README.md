@@ -4,13 +4,15 @@ Personal AI assistant running on Replit with the gateway on port 3000.
 
 ## Access the Control UI
 
+**Security notice:** Never commit a real gateway token, include it in public documentation, or share a token-bearing URL. Any token previously committed to this public repository should be treated as compromised and rotated or revoked in the runtime configuration. Store replacement credentials in the runtime's secret/configuration store.
+
 **The URL must include the auth token in the hash fragment:**
 
 ```
-http://localhost:3000/#token=ec907a1f86fd4601654abbb1e2c485b85b2a832ee0e314b4
+http://localhost:3000/#token=<YOUR_GATEWAY_TOKEN>
 ```
 
-⚠️ **Without `#token=...` you will get "origin not allowed" errors.** The WebSocket connection requires this token to authenticate.
+⚠️ The WebSocket connection uses this token to authenticate. Do not paste real tokens into issues, logs, screenshots, or public documentation.
 
 ## Quick Start
 
@@ -20,7 +22,7 @@ bash start-openclaw.sh
 ```
 
 ### 2. Open the Webview
-Click the webview for port 3000, then **append `#token=ec907a1f86fd4601654abbb1e2c485b85b2a832ee0e314b4`** to the URL.
+Click the webview for port 3000, then **append `#token=<YOUR_GATEWAY_TOKEN>`** to the URL.
 
 Or run from the terminal:
 ```bash
@@ -51,7 +53,7 @@ Or add to `~/.openclaw/openclaw.json`:
 ### Gateway Config (`~/.openclaw/openclaw.json`)
 | Field | Value | Purpose |
 |---|---|---|
-| `gateway.auth.token` | `ec907a1...14b4` | Auth token for WebSocket |
+| `gateway.auth.token` | `<YOUR_GATEWAY_TOKEN>`| Auth token for WebSocket |
 | `gateway.port` | `3000` | Gateway port |
 | `gateway.bind` | `"lan"` | Bind to all interfaces |
 | `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback` | `true` | Allows Replit's dynamic origins |

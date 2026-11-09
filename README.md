@@ -4,111 +4,103 @@ Personal AI assistant running on Replit with the gateway on port 3000.
 
 ## Access the Control UI
 
-**The URL must include the auth token in the hash fragment:**
+Start the gateway and use the dashboard command to obtain the authenticated Control UI URL:
 
-```
-http://localhost:3000/#token=ec907a1f86fd4601654abbb1e2c485b85b2a832ee0e314b4
+```bash
+bash start-openclaw.sh
+openclaw dashboard
 ```
 
-⚠️ **Without `#token=...` you will get "origin not allowed" errors.** The WebSocket connection requires this token to authenticate.
+**Security:** Never commit gateway authentication tokens, authenticated dashboard URLs, API keys, or other credentials to this repository, documentation, screenshots, or issue reports. Obtain the current authenticated URL from the running CLI or deployment's secret-management interface. If a credential has ever been committed or exposed, revoke/rotate it in the running deployment and review repository history; deleting it from the latest README does not invalidate it or remove it from Git history.
 
 ## Quick Start
 
 ### 1. Start the Gateway
+
 ```bash
 bash start-openclaw.sh
 ```
 
 ### 2. Open the Webview
-Click the webview for port 3000, then **append `#token=ec907a1f86fd4601654abbb1e2c485b85b2a832ee0e314b4`** to the URL.
 
-Or run from the terminal:
+Open the Replit webview for port 3000, then run:
+
 ```bash
 openclaw dashboard
 ```
-This prints the correct URL with the token baked in.
+
+Use the authenticated URL produced by the CLI. Do not paste its token into source files or shared documentation.
 
 ### 3. Configure a Model Provider
-The gateway defaults to `openai/gpt-5.4` but **needs an API key** to respond:
+
+The gateway requires credentials for the selected model provider. Supply API keys through the deployment's secret manager or another approved runtime secret store. Do not hardcode keys in source code or commit local environment files.
+
+Example shell configuration (use your own secret-management mechanism):
 
 ```bash
-export OPENAI_API_KEY="sk-..."
+export OPENAI_API_KEY="(set through a secure secret store)"
 bash start-openclaw.sh
 ```
 
-Or add to `~/.openclaw/openclaw.json`:
-```json
-{
-  "gateway": { ... },
-  "agent": {
-    "model": "openai/gpt-5.4"
-  }
-}
-```
+Or configure the provider in the runtime configuration file, ensuring all secrets are injected securely and the file is not committed.
 
 ## Configuration
 
-### Gateway Config (`~/.openclaw/openclaw.json`)
-| Field | Value | Purpose |
-|---|---|---|
-| `gateway.auth.token` | `ec907a1...14b4` | Auth token for WebSocket |
-| `gateway.port` | `3000` | Gateway port |
-| `gateway.bind` | `"lan"` | Bind to all interfaces |
-| `gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback` | `true` | Allows Replit's dynamic origins |
+Runtime configuration is stored at `~/.openclaw/openclaw.json`.
 
-### Environment Variables
+| Setting | Purpose |
+|---|---|
+| Gateway authentication token | Authenticates Control UI and WebSocket access; generate and store securely at runtime |
+| Gateway port | Gateway listener port (default: 3000) |
+| Gateway bind address | Network interface used by the gateway |
+| Control UI origin policy | Browser-origin validation; keep the strictest compatible policy and avoid disabling protections as a convenience workaround |
+
+Review the OpenClaw security guidance before exposing the gateway beyond a trusted local environment. Do not expose an unauthenticated gateway to public networks.
+
+## Environment Variables
+
 | Variable | Purpose |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI model API key |
-| `ANTHROPIC_API_KEY` | Anthropic model API key |
-| `OPENCLAW_PORT` | Override port (default: 3000) |
+| `OPENAI_API_KEY` | OpenAI model provider credential |
+| `ANTHROPIC_API_KEY` | Anthropic model provider credential |
+| `OPENCLAW_PORT` | Override the gateway port (default: 3000) |
 
 ## Architecture
 
-```
-┌────────────────────────────────────────┐
-│         Replit Webview (port 3000)     │
-│                                        │
-│  ┌──────────────┐  ┌────────────────┐  │
-│  │  Control UI  │◄─┤  Gateway WS    │  │
-│  │  (Lit+Vite)  │  │  + HTTP Server │  │
-│  │              │  │  port 3000     │  │
-│  └──────────────┘  └───────┬────────┘  │
-│                            │           │
-│  Plugins loaded:           │           │
-│  • openai (model provider) │           │
-│  • browser (tool)          │           │
-│  • memory-core             │           │
-│  • memory-wiki             │           │
-│  • lobster (tool)          │           │
-│                            │           │
-│  Canvas: /__openclaw__/canvas/         │
-│  MCP:    http://127.0.0.1:*/mcp        │
-│  Health: /health → {"ok":true}         │
-└────────────────────────────────────────┘
+```text
+Replit Webview (port 3000)
+  ├── Control UI (Lit + Vite)
+  └── Gateway WebSocket + HTTP server
+      ├── Model provider plugins
+      ├── Browser and memory tools
+      ├── Canvas
+      ├── MCP endpoint
+      └── Health endpoint (/health)
 ```
 
 ## File Layout
 
 | Path | Purpose |
 |---|---|
-| `start-openclaw.sh` | Gateway launcher (Node 22 from Nix) |
-| `.replit` | Replit config — runs `start-openclaw.sh` |
-| `replit.nix` | Nix deps |
-| `~/.openclaw/openclaw.json` | Gateway config |
+| `start-openclaw.sh` | Gateway launcher |
+| `.replit` | Replit run configuration |
+| `replit.nix` | Nix dependencies |
+| `~/.openclaw/openclaw.json` | Runtime gateway configuration (keep secrets out of Git) |
 | `~/.openclaw/workspace/` | Agent workspace directory |
-| `openclaw-lrs-agents/` | OpenClaw source + built dist |
+| `openclaw-lrs-agents/` | OpenClaw source and built distribution |
 
 ## Logs
 
 - Gateway log: `/tmp/openclaw/openclaw-YYYY-MM-DD.log`
-- Runtime: stdout (visible in Replit console)
+- Runtime output: stdout (visible in the Replit console)
+
+Ensure logs do not record authentication tokens, API keys, or other secrets.
 
 ## Commands
 
 ```bash
-bash start-openclaw.sh          # Start the gateway
-openclaw dashboard              # Print access URL with token
-openclaw status                 # Check gateway status
-openclaw security audit         # Run security audit
+bash start-openclaw.sh
+openclaw dashboard
+openclaw status
+openclaw security audit
 ```

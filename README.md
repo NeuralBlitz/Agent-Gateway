@@ -104,3 +104,14 @@ openclaw dashboard
 openclaw status
 openclaw security audit
 ```
+
+
+## Gateway launcher security and deployment review
+
+The launcher no longer reads gateway credentials from local configuration or writes them to Control UI HTML. The browser must authenticate using the OpenClaw-supported `openclaw dashboard` flow, rather than a static secret baked into files served over HTTP.
+
+Startup now refuses to run unless an OpenClaw configuration file exists or a gateway secret is explicitly supplied through the runtime environment. The previous `--allow-unconfigured` startup option was removed. OpenClaw remains responsible for validating credential correctness; this shell check is not a replacement for authentication.
+
+The launcher retains the historical Replit `lan` bind setting for compatibility. Set `OPENCLAW_BIND=loopback` when a secure local tunnel or proxy architecture permits it; do not expose the LAN-bound admin Control UI without verified token/password authentication, trusted HTTPS ingress and origin restrictions. Set `OPENCLAW_NODE_BIN` and `OPENCLAW_DIR` only when the runtime layout differs.
+
+The pull-request CI runs shell-syntax, refusal-to-start-without-configuration, and static HTML non-modification tests. It does not execute the actual Replit/OpenClaw deployment. A production rollout requires runtime authentication tests, ingress review, secret rotation if previously exposed, and deployment owner verification. See [Gateway security follow-up issue #10](https://github.com/NeuralBlitz/Agent-Gateway/issues/10).

@@ -20,7 +20,7 @@ if [[ ! -f "${OPENCLAW_DIR}/openclaw.mjs" ]]; then
 fi
 
 # Requiring an existing configuration or an explicitly supplied credential
-# avoids the old --allow-unconfigured shortcut. OpenClaw itself remains the
+# avoids an old permissive startup shortcut. OpenClaw itself remains the
 # authority for validating the gateway's authentication configuration.
 if [[ ! -f "${CONFIG_FILE}" && -z "${OPENCLAW_GATEWAY_TOKEN:-}" && -z "${OPENCLAW_GATEWAY_PASSWORD:-}" ]]; then
   echo "OpenClaw startup refused: configure gateway authentication through the runtime secret store or OpenClaw onboarding." >&2

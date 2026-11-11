@@ -1,0 +1,49 @@
+name: Gateway launcher security
+
+on:
+  pull_request:
+    paths:
+      - "start-openclaw.sh"
+      - "README.md"
+      - ".github/workflows/gateway-launcher-security.yml"
+  push:
+    paths:
+      - "start-openclaw.sh"
+      - ".github/workflows/gateway-launcher-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  launcher-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate shell syntax and credential fail-closed behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n start-openclaw.sh
+          temp="$(mktemp -d)"
+          trap 'rm -rf "$temp"' EXIT
+          mkdir -p "$temp/home/.openclaw" "$temp/openclaw/dist/control-ui"
+          touch "$temp/openclaw/openclaw.mjs"
+          printf '%s\n' 'const TOKEN = "DO_NOT_REPLACE";' > "$temp/openclaw/dist/control-ui/index.html"
+          cat > "$temp/fake-node" <<'SH'
+          #!/usr/bin/env bash
+          printf '%s\n' "$@" > "$CAPTURE"
+          SH
+          chmod +x "$temp/fake-node"
+          if env -u OPENCLAW_GATEWAY_TOKEN -u OPENCLAW_GATEWAY_PASSWORD HOME="$temp/home" OPENCLAW_NODE_BIN="$temp/fake-node" OPENCLAW_DIR="$temp/openclaw" CAPTURE="$temp/args" bash start-openclaw.sh; then
+            echo "ERROR: unconfigured gateway was allowed to start" >&2
+            exit 1
+          fi
+          printf '%s\n' '{"gateway":{"auth":{"mode":"token"}}}' > "$temp/home/.openclaw/openclaw.json"
+          HOME="$temp/home" OPENCLAW_NODE_BIN="$temp/fake-node" OPENCLAW_DIR="$temp/openclaw" CAPTURE="$temp/args" OPENCLAW_GATEWAY_TOKEN="CANARY_SECRET_NOT_FOR_HTML" bash start-openclaw.sh
+          grep -qx 'openclaw.mjs' "$temp/args"
+          grep -qx 'gateway' "$temp/args"
+          grep -qx 'lan' "$temp/args"
+          test "$(cat "$temp/openclaw/dist/control-ui/index.html")" = 'const TOKEN = "DO_NOT_REPLACE";'
+          ! grep -Rq 'CANARY_SECRET_NOT_FOR_HTML' "$temp/openclaw/dist"
+          ! grep -q -- '--allow-unconfigured' start-openclaw.sh
